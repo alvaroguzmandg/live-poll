@@ -12,9 +12,13 @@ const copyLinkButton = document.querySelector("#copy-link");
 const qrCode = document.querySelector("#qr-code");
 const historyList = document.querySelector("#history-list");
 const refreshHistoryButton = document.querySelector("#refresh-history");
+const downloadBackupButton = document.querySelector("#download-backup");
+const restoreBrowserBackupButton = document.querySelector("#restore-browser-backup");
+const backupStatus = document.querySelector("#backup-status");
 
 let lastVersion = null;
 let adminKey = new URLSearchParams(window.location.search).get("key") || sessionStorage.getItem("live-poll-admin-key") || "";
+const browserBackupKey = "live-poll-admin-backup";
 
 if (adminKey) {
   sessionStorage.setItem("live-poll-admin-key", adminKey);
@@ -22,6 +26,10 @@ if (adminKey) {
 
 function setStatus(message) {
   adminStatus.textContent = message || "";
+}
+
+function setBackupStatus(message) {
+  backupStatus.textContent = message || "";
 }
 
 function adminFetch(url, options = {}) {
@@ -99,6 +107,34 @@ function renderResults(data) {
   });
 }
 
+function saveBrowserBackup(backup) {
+  localStorage.setItem(browserBackupKey, JSON.stringify({
+    ...backup,
+    savedInBrowserAt: new Date().toISOString()
+  }));
+}
+
+async function fetchBackup() {
+  const response = await adminFetch("/api/admin/backup");
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "No se pudo crear el backup.");
+  }
+
+  saveBrowserBackup(data);
+  return data;
+}
+
+async function refreshBrowserBackup() {
+  try {
+    const backup = await fetchBackup();
+    setBackupStatus(`Backup local actualizado: ${formatDate(backup.exportedAt)}`);
+  } catch (error) {
+    setBackupStatus(error.message);
+  }
+}
+
 function formatDate(value) {
   return new Intl.DateTimeFormat("es-AR", {
     dateStyle: "short",
@@ -173,6 +209,7 @@ async function loadHistory() {
   }
 
   renderHistory(data);
+  refreshBrowserBackup();
 }
 
 async function savePoll(event) {
@@ -214,6 +251,7 @@ async function resetVotes() {
   }
 
   renderResults(data);
+  refreshBrowserBackup();
   setStatus("Votos limpiados.");
 }
 
@@ -230,13 +268,65 @@ async function deleteHistoryItem(archiveId) {
   }
 
   renderHistory(data);
+  refreshBrowserBackup();
   setStatus("Encuesta eliminada del registro.");
+}
+
+async function downloadBackup() {
+  setBackupStatus("Preparando backup...");
+
+  try {
+    const backup = await fetchBackup();
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `live-poll-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setBackupStatus("Backup descargado.");
+  } catch (error) {
+    setBackupStatus(error.message);
+  }
+}
+
+async function restoreBrowserBackup() {
+  const rawBackup = localStorage.getItem(browserBackupKey);
+
+  if (!rawBackup) {
+    setBackupStatus("No hay backup guardado en este navegador.");
+    return;
+  }
+
+  const backup = JSON.parse(rawBackup);
+  setBackupStatus("Restaurando backup...");
+  const response = await adminFetch("/api/admin/restore", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      poll: backup.poll,
+      history: backup.history
+    })
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    setBackupStatus(data.error || "No se pudo restaurar el backup.");
+    return;
+  }
+
+  renderResults(data.results);
+  renderHistory(data.history);
+  setBackupStatus("Backup restaurado. La encuesta activa y el historial volvieron al servidor.");
+  await loadResults({ sync: true });
 }
 
 addOptionButton.addEventListener("click", () => addOptionInput());
 formEl.addEventListener("submit", savePoll);
 resetVotesButton.addEventListener("click", resetVotes);
 refreshHistoryButton.addEventListener("click", loadHistory);
+downloadBackupButton.addEventListener("click", downloadBackup);
+restoreBrowserBackupButton.addEventListener("click", restoreBrowserBackup);
 copyLinkButton.addEventListener("click", async () => {
   await navigator.clipboard.writeText(voteLink.value);
   setStatus("Link copiado.");

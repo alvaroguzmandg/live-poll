@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin encuesta</title>
-    <link rel="stylesheet" href="/styles.css?v=3">
+    <link rel="stylesheet" href="/styles.css?v=5">
   </head>
   <body>
     <main class="page admin-page">
@@ -54,6 +54,21 @@
           <div id="results-list" class="results-list"></div>
         </div>
 
+        <div class="panel backup-panel">
+          <div class="results-title">
+            <div>
+              <p class="eyebrow">Backup</p>
+              <h2>Respaldo del evento</h2>
+            </div>
+          </div>
+          <p class="backup-copy">El admin guarda una copia local en este navegador. Si Render reinicia y se pierde el JSON temporal, podés restaurar desde acá.</p>
+          <div class="button-row">
+            <button id="download-backup" type="button" class="secondary-button">Descargar backup</button>
+            <button id="restore-browser-backup" type="button">Restaurar backup del navegador</button>
+          </div>
+          <p id="backup-status" class="status" role="status"></p>
+        </div>
+
         <div class="panel history-panel">
           <div class="results-title">
             <div>
@@ -66,6 +81,6 @@
         </div>
       </section>
     </main>
-    <script src="/admin.js?v=3"></script>
+    <script src="/admin.js?v=4"></script>
   </body>
 </html>

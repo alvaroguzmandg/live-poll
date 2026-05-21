@@ -149,6 +149,13 @@ function archiveCurrentPoll(reason = "replaced") {
   return snapshot;
 }
 
+function isValidPollBackup(candidate) {
+  return candidate
+    && typeof candidate.question === "string"
+    && Array.isArray(candidate.options)
+    && typeof candidate.votes === "object";
+}
+
 async function handleApi(req, res, pathname) {
   if (req.method === "GET" && pathname === "/api/poll") {
     sendJson(res, 200, publicPoll());
@@ -167,6 +174,15 @@ async function handleApi(req, res, pathname) {
 
   if (req.method === "GET" && pathname === "/api/admin/history") {
     sendJson(res, 200, history);
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/admin/backup") {
+    sendJson(res, 200, {
+      exportedAt: new Date().toISOString(),
+      poll,
+      history
+    });
     return;
   }
 
@@ -222,6 +238,33 @@ async function handleApi(req, res, pathname) {
     };
     savePoll();
     sendJson(res, 200, pollResults());
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/restore") {
+    const body = await readBody(req);
+
+    if (!isValidPollBackup(body.poll) || !Array.isArray(body.history)) {
+      sendJson(res, 400, { error: "El backup no tiene un formato válido." });
+      return;
+    }
+
+    poll = {
+      id: body.poll.id || crypto.randomUUID(),
+      version: Number(body.poll.version || 1),
+      question: body.poll.question,
+      options: body.poll.options,
+      votes: body.poll.votes || {},
+      updatedAt: body.poll.updatedAt || new Date().toISOString()
+    };
+    history = body.history;
+    savePoll();
+    saveHistory();
+    sendJson(res, 200, {
+      restoredAt: new Date().toISOString(),
+      results: pollResults(),
+      history
+    });
     return;
   }
 

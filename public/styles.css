@@ -267,6 +267,10 @@ h2 {
   grid-column: 1 / -1;
 }
 
+.backup-panel {
+  grid-column: 1 / -1;
+}
+
 .editor-form {
   display: grid;
   gap: 16px;
@@ -449,6 +453,11 @@ button:hover {
 
 .history-card p {
   margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.backup-copy {
+  margin: 16px 0;
   color: var(--muted);
 }
 
