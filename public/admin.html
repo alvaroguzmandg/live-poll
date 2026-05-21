@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin encuesta</title>
+    <link rel="stylesheet" href="/styles.css?v=3">
+  </head>
+  <body>
+    <main class="page admin-page">
+      <section class="admin-grid">
+        <div class="panel editor-panel">
+          <p class="eyebrow">Panel admin</p>
+          <h1>Encuesta activa</h1>
+          <form id="poll-form" class="editor-form">
+            <label>
+              Pregunta
+              <textarea id="question-input" rows="3" required></textarea>
+            </label>
+
+            <div class="options-header">
+              <span>Opciones</span>
+              <button id="add-option" type="button" class="ghost-button">+ Agregar</button>
+            </div>
+            <div id="option-inputs" class="option-inputs"></div>
+
+            <div class="button-row">
+              <button type="submit">Publicar y limpiar votos</button>
+              <button id="reset-votes" type="button" class="secondary-button">Limpiar votos</button>
+            </div>
+            <p id="admin-status" class="status" role="status"></p>
+          </form>
+        </div>
+
+        <div class="panel share-panel">
+          <p class="eyebrow">Link fijo</p>
+          <h2>Compartir</h2>
+          <img id="qr-code" class="qr-code" alt="QR para entrar a la encuesta">
+          <div class="link-box">
+            <input id="vote-link" readonly>
+            <button id="copy-link" type="button" class="secondary-button">Copiar</button>
+          </div>
+          <a class="results-link" href="/results" target="_blank" rel="noreferrer">Abrir pantalla de resultados</a>
+        </div>
+
+        <div class="panel results-panel">
+          <div class="results-title">
+            <div>
+              <p class="eyebrow">Resultados</p>
+              <h2 id="results-question">Cargando...</h2>
+            </div>
+            <strong id="total-votes" class="total-votes">0 votos</strong>
+          </div>
+          <div id="results-list" class="results-list"></div>
+        </div>
+
+        <div class="panel history-panel">
+          <div class="results-title">
+            <div>
+              <p class="eyebrow">Registro</p>
+              <h2>Encuestas anteriores</h2>
+            </div>
+            <button id="refresh-history" type="button" class="secondary-button">Actualizar registro</button>
+          </div>
+          <div id="history-list" class="history-list"></div>
+        </div>
+      </section>
+    </main>
+    <script src="/admin.js?v=3"></script>
+  </body>
+</html>

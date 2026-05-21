@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Encuesta en vivo</title>
+    <link rel="stylesheet" href="/styles.css?v=3">
+  </head>
+  <body class="voter-body">
+    <main class="page voter-page">
+      <section class="poll-shell">
+        <p class="eyebrow">Encuesta en vivo</p>
+        <h1 id="question">Cargando pregunta...</h1>
+        <form id="vote-form" class="options" aria-label="Opciones de respuesta"></form>
+        <div id="thanks" class="thanks-message" hidden>Gracias por votar</div>
+        <div class="voter-actions">
+          <p id="status" class="status" role="status"></p>
+          <button id="refresh-page" class="refresh-button" type="button">Refrescar página</button>
+        </div>
+      </section>
+    </main>
+    <script src="/vote.js?v=3"></script>
+  </body>
+</html>
