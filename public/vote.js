@@ -28,9 +28,16 @@ function setStatus(message) {
   statusEl.textContent = message || "";
 }
 
+function setLayoutDensity(question, optionCount) {
+  const length = question.length;
+  document.body.dataset.questionSize = length > 120 ? "xlong" : length > 72 ? "long" : "normal";
+  document.body.dataset.optionCount = String(optionCount);
+}
+
 function renderPoll() {
   questionEl.textContent = poll.question;
   formEl.innerHTML = "";
+  setLayoutDensity(poll.question, poll.options.length);
 
   const hasVoted = localStorage.getItem(votedKey(poll.version)) === "true";
   const selectedOptionId = localStorage.getItem(selectedOptionKey(poll.version));

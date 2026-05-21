@@ -2,10 +2,17 @@ const displayQuestion = document.querySelector("#display-question");
 const displayTotal = document.querySelector("#display-total");
 const displayResults = document.querySelector("#display-results");
 
+function setLayoutDensity(question, optionCount) {
+  const length = question.length;
+  document.body.dataset.questionSize = length > 120 ? "xlong" : length > 72 ? "long" : "normal";
+  document.body.dataset.optionCount = String(optionCount);
+}
+
 function renderDisplayResults(data) {
   displayQuestion.textContent = data.question;
   displayTotal.textContent = `${data.total} ${data.total === 1 ? "voto" : "votos"}`;
   displayResults.innerHTML = "";
+  setLayoutDensity(data.question, data.results.length);
 
   data.results.forEach((option) => {
     const voteLabel = option.votes === 1 ? "voto" : "votos";
