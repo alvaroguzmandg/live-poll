@@ -6,8 +6,11 @@ const crypto = require("crypto");
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_KEY = process.env.ADMIN_KEY || "";
 const PUBLIC_DIR = path.join(__dirname, "public");
-const DATA_FILE = path.join(__dirname, "poll-state.json");
-const HISTORY_FILE = path.join(__dirname, "poll-history.json");
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const DATA_FILE = path.join(DATA_DIR, "poll-state.json");
+const HISTORY_FILE = path.join(DATA_DIR, "poll-history.json");
+
+fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const defaultPoll = {
   id: crypto.randomUUID(),
