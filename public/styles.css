@@ -507,6 +507,90 @@ button:hover {
   color: var(--muted);
 }
 
+.links-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+}
+
+.links-shell {
+  width: 100%;
+  max-width: 980px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  padding: clamp(22px, 5vw, 48px);
+}
+
+.links-shell h1 {
+  margin-bottom: 24px;
+}
+
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.link-card {
+  display: grid;
+  gap: 8px;
+  min-height: 150px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 18px;
+  text-decoration: none;
+}
+
+.link-card:hover,
+.link-card:focus-visible {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  outline: none;
+}
+
+.link-card span {
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.link-card strong {
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  line-height: 1.05;
+}
+
+.link-card small {
+  align-self: end;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.admin-link {
+  grid-column: 1 / -1;
+  background: var(--event-panel);
+  color: #fff;
+}
+
+.admin-link small,
+.admin-link span {
+  color: var(--event-accent);
+}
+
+.admin-link:hover,
+.admin-link:focus-visible {
+  background: #224a31;
+}
+
+.links-note {
+  margin: 18px 0 0;
+  color: var(--muted);
+}
+
 .history-results {
   display: grid;
   gap: 10px;
@@ -787,5 +871,9 @@ button:hover {
 
   .results-body[data-answer-size="xlong"] .display-result-meta {
     font-size: clamp(0.84rem, 2.65vw, 0.96rem);
+  }
+
+  .links-grid {
+    grid-template-columns: 1fr;
   }
 }

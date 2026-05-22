@@ -428,6 +428,8 @@ function serveStatic(req, res, pathname) {
   const routeFile =
     pathname === "/admin"
       ? "admin.html"
+      : pathname === "/links"
+        ? "links.html"
       : pathname === "/results" || pathname === "/encuesta-resultado"
         ? "results.html"
         : pathname === "/nube"

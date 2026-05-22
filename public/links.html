@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Links actividades</title>
+    <link rel="stylesheet" href="/styles.css?v=7">
+  </head>
+  <body>
+    <main class="page links-page">
+      <section class="links-shell">
+        <p class="eyebrow">Panel de accesos</p>
+        <h1>Links de la actividad</h1>
+        <div class="links-grid">
+          <a class="link-card" href="/encuesta">
+            <span>Participantes</span>
+            <strong>Encuesta</strong>
+            <small>/encuesta</small>
+          </a>
+          <a class="link-card" href="/encuesta-resultado">
+            <span>Pantalla</span>
+            <strong>Resultados encuesta</strong>
+            <small>/encuesta-resultado</small>
+          </a>
+          <a class="link-card" href="/nube">
+            <span>Participantes</span>
+            <strong>Nube de palabras</strong>
+            <small>/nube</small>
+          </a>
+          <a class="link-card" href="/nube-resultados">
+            <span>Pantalla</span>
+            <strong>Resultados nube</strong>
+            <small>/nube-resultados</small>
+          </a>
+          <a id="admin-link" class="link-card admin-link" href="/admin">
+            <span>Privado</span>
+            <strong>Admin</strong>
+            <small id="admin-link-path">/admin</small>
+          </a>
+        </div>
+        <p class="links-note">Tip: abrí esta página como <code>/links?key=TU_CLAVE</code> para que el botón de admin incluya tu clave.</p>
+      </section>
+    </main>
+    <script src="/links.js?v=1"></script>
+  </body>
+</html>
