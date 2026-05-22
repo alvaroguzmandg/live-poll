@@ -1,12 +1,16 @@
-# Encuesta en vivo
+# Actividades en vivo
 
-Mini app para una encuesta multiple choice con link publico de votacion, pantalla de resultados y panel admin.
+Mini app para actividades en vivo con dos modalidades: encuesta multiple choice y nube de palabras. Tiene links publicos de participacion, pantallas de resultados y panel admin.
 
 ## Rutas
 
-- `/`: link publico para votar.
-- `/results`: pantalla publica de resultados para mostrar en vivo.
-- `/admin?key=TU_CLAVE`: panel admin para cambiar la encuesta, ver QR, resetear votos y administrar historial.
+- `/encuesta`: link publico para votar encuestas.
+- `/nube`: link publico para enviar una palabra o frase de maximo 2 palabras.
+- `/encuesta-resultado`: pantalla publica de resultados de encuestas.
+- `/nube-resultados`: pantalla publica de nube de palabras.
+- `/admin?key=TU_CLAVE`: panel admin para elegir modalidad, cambiar consigna, ver QR, resetear respuestas, restaurar backup y administrar historial.
+
+Las rutas `/` y `/results` quedan como aliases de compatibilidad para encuesta y resultados de encuesta.
 
 ## Correr local
 
@@ -24,7 +28,7 @@ Si `ADMIN_KEY` esta configurada, las acciones de admin requieren abrir `/admin?k
 
 ## Persistencia
 
-La encuesta activa se guarda en `poll-state.json` y el historial en `poll-history.json`. Esos archivos no se suben a Git porque son datos vivos del evento.
+La actividad activa se guarda en `poll-state.json` y el historial en `poll-history.json`. Esos archivos no se suben a Git porque son datos vivos del evento.
 
 Por defecto se guardan en la raiz del proyecto. En produccion podes configurar `DATA_DIR` para guardarlos en un disco persistente, por ejemplo:
 
@@ -43,7 +47,9 @@ Para mantener esta version simple con JSON:
 3. Configurar `ADMIN_KEY` y `DATA_DIR` en el host.
 4. Compartir estos links:
    - Votacion: `https://tu-dominio.com/`
-   - Resultados: `https://tu-dominio.com/results`
+   - Nube: `https://tu-dominio.com/nube`
+   - Resultados encuesta: `https://tu-dominio.com/encuesta-resultado`
+   - Resultados nube: `https://tu-dominio.com/nube-resultados`
    - Admin: `https://tu-dominio.com/admin?key=TU_CLAVE`
 
 Vercel puede servir si luego cambiamos JSON por almacenamiento externo. Para esta version con archivos locales, es mejor usar un servidor Node persistente.

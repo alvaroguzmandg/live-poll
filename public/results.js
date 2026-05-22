@@ -9,6 +9,13 @@ function setLayoutDensity(question, optionCount) {
 }
 
 function renderDisplayResults(data) {
+  if (data.type !== "poll") {
+    displayQuestion.textContent = "La actividad activa no es una encuesta.";
+    displayTotal.textContent = "0 votos";
+    displayResults.innerHTML = "";
+    return;
+  }
+
   displayQuestion.textContent = data.question;
   displayTotal.textContent = `${data.total} ${data.total === 1 ? "voto" : "votos"}`;
   displayResults.innerHTML = "";

@@ -35,6 +35,14 @@ function setLayoutDensity(question, optionCount) {
 }
 
 function renderPoll() {
+  if (poll.type !== "poll") {
+    questionEl.textContent = "La actividad activa no es una encuesta.";
+    formEl.innerHTML = "";
+    thanksEl.hidden = true;
+    setStatus("Pedile al admin que active la encuesta.");
+    return;
+  }
+
   questionEl.textContent = poll.question;
   formEl.innerHTML = "";
   setLayoutDensity(poll.question, poll.options.length);

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nube de palabras</title>
+    <link rel="stylesheet" href="/styles.css?v=6">
+  </head>
+  <body class="voter-body">
+    <main class="page voter-page">
+      <section class="poll-shell">
+        <p class="eyebrow">Nube de palabras</p>
+        <h1 id="question">Cargando consigna...</h1>
+        <form id="word-form" class="word-form" aria-label="Enviar palabra">
+          <label class="word-label" for="word-input">Tu palabra</label>
+          <input id="word-input" maxlength="32" autocomplete="off" placeholder="Máximo 2 palabras" required>
+          <button type="submit" class="word-submit">Enviar</button>
+        </form>
+        <div id="thanks" class="thanks-message" hidden>Gracias por participar</div>
+        <div class="voter-actions">
+          <p id="status" class="status" role="status"></p>
+          <button id="refresh-page" class="refresh-button" type="button">Refrescar página</button>
+        </div>
+      </section>
+    </main>
+    <script src="/cloud.js?v=1"></script>
+  </body>
+</html>

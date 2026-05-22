@@ -14,6 +14,7 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const defaultPoll = {
   id: crypto.randomUUID(),
+  type: "poll",
   version: 1,
   question: "¿Qué opción preferís?",
   options: [
@@ -22,6 +23,7 @@ const defaultPoll = {
     { id: crypto.randomUUID(), text: "Opción C" }
   ],
   votes: {},
+  words: {},
   updatedAt: new Date().toISOString()
 };
 
@@ -101,14 +103,19 @@ function isAdminAuthorized(req) {
 function publicPoll() {
   return {
     id: poll.id,
+    type: poll.type || "poll",
     version: poll.version,
     question: poll.question,
-    options: poll.options,
+    options: poll.type === "cloud" ? [] : poll.options,
     updatedAt: poll.updatedAt
   };
 }
 
 function pollResultsFor(sourcePoll) {
+  if ((sourcePoll.type || "poll") === "cloud") {
+    return cloudResultsFor(sourcePoll);
+  }
+
   const counts = Object.fromEntries(sourcePoll.options.map((option) => [option.id, 0]));
   for (const optionId of Object.values(sourcePoll.votes || {})) {
     if (counts[optionId] !== undefined) {
@@ -119,6 +126,7 @@ function pollResultsFor(sourcePoll) {
   const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
   return {
     id: sourcePoll.id,
+    type: "poll",
     version: sourcePoll.version,
     question: sourcePoll.question,
     options: sourcePoll.options,
@@ -134,6 +142,46 @@ function pollResultsFor(sourcePoll) {
 
 function pollResults() {
   return pollResultsFor(poll);
+}
+
+function normalizeWord(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function wordCount(value) {
+  return normalizeWord(value).split(" ").filter(Boolean).length;
+}
+
+function cloudResultsFor(sourcePoll) {
+  const counts = {};
+  for (const word of Object.values(sourcePoll.words || {})) {
+    counts[word] = (counts[word] || 0) + 1;
+  }
+
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  const maxCount = Math.max(1, ...Object.values(counts));
+  const results = Object.entries(counts)
+    .map(([word, count]) => ({
+      word,
+      count,
+      percent: total ? Math.round((count / total) * 100) : 0,
+      weight: count / maxCount
+    }))
+    .sort((a, b) => b.count - a.count || a.word.localeCompare(b.word, "es"));
+
+  return {
+    id: sourcePoll.id,
+    type: "cloud",
+    version: sourcePoll.version,
+    question: sourcePoll.question,
+    options: [],
+    updatedAt: sourcePoll.updatedAt,
+    total,
+    results
+  };
 }
 
 function archiveCurrentPoll(reason = "replaced") {
@@ -152,11 +200,32 @@ function archiveCurrentPoll(reason = "replaced") {
 function isValidPollBackup(candidate) {
   return candidate
     && typeof candidate.question === "string"
-    && Array.isArray(candidate.options)
     && typeof candidate.votes === "object";
 }
 
+function createNextActivity({ type, question, options }) {
+  archiveCurrentPoll("replaced");
+
+  poll = {
+    id: poll.id,
+    type,
+    version: poll.version + 1,
+    question,
+    options: type === "poll" ? options.map((text) => ({ id: crypto.randomUUID(), text })) : [],
+    votes: {},
+    words: {},
+    updatedAt: new Date().toISOString()
+  };
+  savePoll();
+  return pollResults();
+}
+
 async function handleApi(req, res, pathname) {
+  if (req.method === "GET" && pathname === "/api/activity") {
+    sendJson(res, 200, publicPoll());
+    return;
+  }
+
   if (req.method === "GET" && pathname === "/api/poll") {
     sendJson(res, 200, publicPoll());
     return;
@@ -192,8 +261,18 @@ async function handleApi(req, res, pathname) {
     const optionId = String(body.optionId || "").trim();
     const version = Number(body.version);
 
+    if ((poll.type || "poll") !== "poll") {
+      sendJson(res, 400, { error: "La actividad activa no es una encuesta." });
+      return;
+    }
+
     if (!participantId || version !== poll.version) {
       sendJson(res, 400, { error: "La encuesta cambió. Recargá y volvé a votar." });
+      return;
+    }
+
+    if (poll.votes[participantId]) {
+      sendJson(res, 400, { error: "Ya votaste en esta encuesta." });
       return;
     }
 
@@ -206,6 +285,39 @@ async function handleApi(req, res, pathname) {
     poll.updatedAt = new Date().toISOString();
     savePoll();
     sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/word") {
+    const body = await readBody(req);
+    const participantId = String(body.participantId || "").trim();
+    const submittedWord = normalizeWord(body.word);
+    const version = Number(body.version);
+
+    if ((poll.type || "poll") !== "cloud") {
+      sendJson(res, 400, { error: "La actividad activa no es una nube de palabras." });
+      return;
+    }
+
+    if (!participantId || version !== poll.version) {
+      sendJson(res, 400, { error: "La consigna cambió. Recargá y volvé a responder." });
+      return;
+    }
+
+    if (!submittedWord || submittedWord.length > 32 || wordCount(submittedWord) > 2) {
+      sendJson(res, 400, { error: "Escribí una palabra o una frase de máximo 2 palabras." });
+      return;
+    }
+
+    if (poll.words[participantId]) {
+      sendJson(res, 400, { error: "Ya enviaste tu palabra en esta consigna." });
+      return;
+    }
+
+    poll.words[participantId] = submittedWord;
+    poll.updatedAt = new Date().toISOString();
+    savePoll();
+    sendJson(res, 200, { ok: true, word: submittedWord });
     return;
   }
 
@@ -226,18 +338,29 @@ async function handleApi(req, res, pathname) {
       return;
     }
 
-    archiveCurrentPoll("replaced");
+    sendJson(res, 200, createNextActivity({ type: "poll", question, options: optionTexts }));
+    return;
+  }
 
-    poll = {
-      id: poll.id,
-      version: poll.version + 1,
-      question,
-      options: optionTexts.map((text) => ({ id: crypto.randomUUID(), text })),
-      votes: {},
-      updatedAt: new Date().toISOString()
-    };
-    savePoll();
-    sendJson(res, 200, pollResults());
+  if (req.method === "POST" && pathname === "/api/admin/activity") {
+    const body = await readBody(req);
+    const type = body.type === "cloud" ? "cloud" : "poll";
+    const question = String(body.question || "").trim();
+    const optionTexts = Array.isArray(body.options)
+      ? body.options.map((option) => String(option || "").trim()).filter(Boolean)
+      : [];
+
+    if (question.length < 3) {
+      sendJson(res, 400, { error: "La consigna necesita al menos 3 caracteres." });
+      return;
+    }
+
+    if (type === "poll" && optionTexts.length < 2) {
+      sendJson(res, 400, { error: "Cargá al menos 2 opciones." });
+      return;
+    }
+
+    sendJson(res, 200, createNextActivity({ type, question, options: optionTexts }));
     return;
   }
 
@@ -251,10 +374,12 @@ async function handleApi(req, res, pathname) {
 
     poll = {
       id: body.poll.id || crypto.randomUUID(),
+      type: body.poll.type === "cloud" ? "cloud" : "poll",
       version: Number(body.poll.version || 1),
       question: body.poll.question,
-      options: body.poll.options,
+      options: Array.isArray(body.poll.options) ? body.poll.options : [],
       votes: body.poll.votes || {},
+      words: body.poll.words || {},
       updatedAt: body.poll.updatedAt || new Date().toISOString()
     };
     history = body.history;
@@ -285,7 +410,11 @@ async function handleApi(req, res, pathname) {
   }
 
   if (req.method === "POST" && pathname === "/api/admin/reset") {
-    poll.votes = {};
+    if ((poll.type || "poll") === "cloud") {
+      poll.words = {};
+    } else {
+      poll.votes = {};
+    }
     poll.updatedAt = new Date().toISOString();
     savePoll();
     sendJson(res, 200, pollResults());
@@ -299,11 +428,17 @@ function serveStatic(req, res, pathname) {
   const routeFile =
     pathname === "/admin"
       ? "admin.html"
-      : pathname === "/results"
+      : pathname === "/results" || pathname === "/encuesta-resultado"
         ? "results.html"
-        : pathname === "/"
-          ? "index.html"
-          : pathname.slice(1);
+        : pathname === "/nube"
+          ? "cloud.html"
+          : pathname === "/nube-resultados"
+            ? "cloud-results.html"
+            : pathname === "/encuesta"
+              ? "index.html"
+      : pathname === "/"
+        ? "index.html"
+        : pathname.slice(1);
   const filePath = path.normalize(path.join(PUBLIC_DIR, routeFile));
 
   if (!filePath.startsWith(PUBLIC_DIR)) {

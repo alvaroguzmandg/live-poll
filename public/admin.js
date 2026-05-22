@@ -1,5 +1,7 @@
 const formEl = document.querySelector("#poll-form");
+const activityTypeInput = document.querySelector("#activity-type");
 const questionInput = document.querySelector("#question-input");
+const pollOptionsEditor = document.querySelector("#poll-options-editor");
 const optionInputs = document.querySelector("#option-inputs");
 const addOptionButton = document.querySelector("#add-option");
 const resetVotesButton = document.querySelector("#reset-votes");
@@ -10,6 +12,7 @@ const totalVotes = document.querySelector("#total-votes");
 const voteLink = document.querySelector("#vote-link");
 const copyLinkButton = document.querySelector("#copy-link");
 const qrCode = document.querySelector("#qr-code");
+const resultsLink = document.querySelector("#results-link");
 const historyList = document.querySelector("#history-list");
 const refreshHistoryButton = document.querySelector("#refresh-history");
 const downloadBackupButton = document.querySelector("#download-backup");
@@ -17,6 +20,7 @@ const restoreBrowserBackupButton = document.querySelector("#restore-browser-back
 const backupStatus = document.querySelector("#backup-status");
 
 let lastVersion = null;
+let currentActivityType = "poll";
 let adminKey = new URLSearchParams(window.location.search).get("key") || sessionStorage.getItem("live-poll-admin-key") || "";
 const browserBackupKey = "live-poll-admin-backup";
 
@@ -43,13 +47,24 @@ function adminFetch(url, options = {}) {
 }
 
 function currentVoteUrl() {
-  return `${window.location.origin}/`;
+  return `${window.location.origin}/${currentActivityType === "cloud" ? "nube" : "encuesta"}`;
+}
+
+function currentResultsUrl() {
+  return `${window.location.origin}/${currentActivityType === "cloud" ? "nube-resultados" : "encuesta-resultado"}`;
 }
 
 function updateShareTools() {
   const url = currentVoteUrl();
   voteLink.value = url;
   qrCode.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
+  resultsLink.href = currentResultsUrl();
+}
+
+function syncActivityControls() {
+  currentActivityType = activityTypeInput.value;
+  pollOptionsEditor.hidden = currentActivityType === "cloud";
+  updateShareTools();
 }
 
 function addOptionInput(value = "") {
@@ -79,15 +94,32 @@ function syncEditor(data) {
   if (lastVersion === data.version) return;
 
   lastVersion = data.version;
+  currentActivityType = data.type || "poll";
+  activityTypeInput.value = currentActivityType;
+  syncActivityControls();
   questionInput.value = data.question;
   optionInputs.innerHTML = "";
-  data.options.forEach((option) => addOptionInput(option.text));
+  (data.options || []).forEach((option) => addOptionInput(option.text));
+  if (currentActivityType === "poll" && optionInputs.children.length < 2) {
+    addOptionInput();
+    addOptionInput();
+  }
 }
 
 function renderResults(data) {
+  currentActivityType = data.type || "poll";
+  activityTypeInput.value = currentActivityType;
+  syncActivityControls();
   resultsQuestion.textContent = data.question;
-  totalVotes.textContent = `${data.total} ${data.total === 1 ? "voto" : "votos"}`;
+  totalVotes.textContent = currentActivityType === "cloud"
+    ? `${data.total} ${data.total === 1 ? "palabra" : "palabras"}`
+    : `${data.total} ${data.total === 1 ? "voto" : "votos"}`;
   resultsList.innerHTML = "";
+
+  if (currentActivityType === "cloud") {
+    renderCloudResults(data);
+    return;
+  }
 
   data.results.forEach((option) => {
     const voteLabel = option.votes === 1 ? "voto" : "votos";
@@ -105,6 +137,27 @@ function renderResults(data) {
     row.querySelector("strong").textContent = option.text;
     resultsList.appendChild(row);
   });
+}
+
+function renderCloudResults(data) {
+  if (!data.results.length) {
+    const empty = document.createElement("p");
+    empty.className = "history-empty";
+    empty.textContent = "Todavía no hay palabras.";
+    resultsList.appendChild(empty);
+    return;
+  }
+
+  const cloud = document.createElement("div");
+  cloud.className = "admin-word-cloud";
+  data.results.forEach((item) => {
+    const word = document.createElement("span");
+    word.className = "admin-cloud-word";
+    word.textContent = `${item.word} (${item.count})`;
+    word.style.setProperty("--word-scale", (0.85 + item.weight * 1.7).toFixed(2));
+    cloud.appendChild(word);
+  });
+  resultsList.appendChild(cloud);
 }
 
 function saveBrowserBackup(backup) {
@@ -168,8 +221,26 @@ function renderHistory(items) {
     `;
 
     card.querySelector("h3").textContent = item.question;
-    card.querySelector("p").textContent = `${item.total} ${item.total === 1 ? "voto" : "votos"} · ${formatDate(item.archivedAt)}`;
+    const itemType = item.type || "poll";
+    const totalLabel = itemType === "cloud"
+      ? `${item.total} ${item.total === 1 ? "palabra" : "palabras"}`
+      : `${item.total} ${item.total === 1 ? "voto" : "votos"}`;
+    card.querySelector("p").textContent = `${totalLabel} · ${formatDate(item.archivedAt)}`;
     const results = card.querySelector(".history-results");
+
+    if (itemType === "cloud") {
+      const cloud = document.createElement("div");
+      cloud.className = "admin-word-cloud";
+      item.results.forEach((wordItem) => {
+        const word = document.createElement("span");
+        word.className = "admin-cloud-word";
+        word.textContent = `${wordItem.word} (${wordItem.count})`;
+        word.style.setProperty("--word-scale", (0.85 + (wordItem.weight || 0.5) * 1.4).toFixed(2));
+        cloud.appendChild(word);
+      });
+      results.appendChild(cloud);
+      return;
+    }
 
     item.results.forEach((option) => {
       const voteLabel = option.votes === 1 ? "voto" : "votos";
@@ -216,14 +287,16 @@ async function savePoll(event) {
   event.preventDefault();
   setStatus("Publicando...");
 
+  const type = activityTypeInput.value;
   const options = [...optionInputs.querySelectorAll("input")]
     .map((input) => input.value.trim())
     .filter(Boolean);
 
-  const response = await adminFetch("/api/admin/poll", {
+  const response = await adminFetch("/api/admin/activity", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      type,
       question: questionInput.value.trim(),
       options
     })
@@ -238,7 +311,7 @@ async function savePoll(event) {
   lastVersion = data.version;
   renderResults(data);
   await loadHistory();
-  setStatus("Encuesta publicada. El link y el QR siguen siendo los mismos.");
+  setStatus("Actividad publicada. El QR se actualizó con la modalidad activa.");
 }
 
 async function resetVotes() {
@@ -252,7 +325,7 @@ async function resetVotes() {
 
   renderResults(data);
   refreshBrowserBackup();
-  setStatus("Votos limpiados.");
+  setStatus("Respuestas limpiadas.");
 }
 
 async function deleteHistoryItem(archiveId) {
@@ -331,6 +404,7 @@ copyLinkButton.addEventListener("click", async () => {
   await navigator.clipboard.writeText(voteLink.value);
   setStatus("Link copiado.");
 });
+activityTypeInput.addEventListener("change", syncActivityControls);
 
 updateShareTools();
 loadResults({ sync: true }).catch(() => setStatus("No se pudo cargar la encuesta."));

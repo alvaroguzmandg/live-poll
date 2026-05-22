@@ -4,29 +4,38 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin encuesta</title>
-    <link rel="stylesheet" href="/styles.css?v=5">
+    <link rel="stylesheet" href="/styles.css?v=6">
   </head>
   <body>
     <main class="page admin-page">
       <section class="admin-grid">
         <div class="panel editor-panel">
           <p class="eyebrow">Panel admin</p>
-          <h1>Encuesta activa</h1>
+          <h1>Actividad activa</h1>
           <form id="poll-form" class="editor-form">
             <label>
-              Pregunta
+              Modalidad
+              <select id="activity-type">
+                <option value="poll">Encuesta</option>
+                <option value="cloud">Nube de palabras</option>
+              </select>
+            </label>
+            <label>
+              Pregunta o consigna
               <textarea id="question-input" rows="3" required></textarea>
             </label>
 
-            <div class="options-header">
-              <span>Opciones</span>
-              <button id="add-option" type="button" class="ghost-button">+ Agregar</button>
+            <div id="poll-options-editor">
+              <div class="options-header">
+                <span>Opciones</span>
+                <button id="add-option" type="button" class="ghost-button">+ Agregar</button>
+              </div>
+              <div id="option-inputs" class="option-inputs"></div>
             </div>
-            <div id="option-inputs" class="option-inputs"></div>
 
             <div class="button-row">
-              <button type="submit">Publicar y limpiar votos</button>
-              <button id="reset-votes" type="button" class="secondary-button">Limpiar votos</button>
+              <button type="submit">Publicar y limpiar respuestas</button>
+              <button id="reset-votes" type="button" class="secondary-button">Limpiar respuestas</button>
             </div>
             <p id="admin-status" class="status" role="status"></p>
           </form>
@@ -40,7 +49,7 @@
             <input id="vote-link" readonly>
             <button id="copy-link" type="button" class="secondary-button">Copiar</button>
           </div>
-          <a class="results-link" href="/results" target="_blank" rel="noreferrer">Abrir pantalla de resultados</a>
+          <a id="results-link" class="results-link" href="/encuesta-resultado" target="_blank" rel="noreferrer">Abrir pantalla de resultados</a>
         </div>
 
         <div class="panel results-panel">
@@ -81,6 +90,6 @@
         </div>
       </section>
     </main>
-    <script src="/admin.js?v=4"></script>
+    <script src="/admin.js?v=5"></script>
   </body>
 </html>

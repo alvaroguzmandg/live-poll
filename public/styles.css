@@ -34,7 +34,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -248,6 +249,34 @@ h2 {
   outline: none;
 }
 
+.word-form {
+  display: grid;
+  gap: clamp(10px, 2vmin, 16px);
+  margin-top: clamp(16px, 4vmin, 42px);
+}
+
+.word-label {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(0.95rem, min(2.2vw, 2.5vh), 1.4rem);
+}
+
+.word-form input {
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: #fff;
+  color: var(--event-panel);
+  font-size: clamp(1.2rem, min(3vw, 3.4vh), 2rem);
+  font-weight: 900;
+  text-align: center;
+  text-transform: lowercase;
+}
+
+.word-submit {
+  justify-self: center;
+  min-width: min(100%, 240px);
+  background: var(--event-accent);
+  color: var(--event-panel);
+}
+
 .admin-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
@@ -285,7 +314,8 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -299,7 +329,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: var(--primary);
   outline: 3px solid rgba(36, 87, 214, 0.16);
 }
@@ -612,6 +643,67 @@ button:hover {
   border-radius: inherit;
   background: var(--event-accent);
   transition: width 240ms ease;
+}
+
+.word-cloud {
+  display: flex;
+  flex: 1;
+  gap: clamp(10px, 2vmin, 28px);
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 0;
+  margin-top: clamp(18px, 4vmin, 44px);
+  overflow: hidden;
+}
+
+.word-cloud-empty {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(1.2rem, min(3vw, 3.6vh), 2rem);
+}
+
+.cloud-word {
+  display: inline-block;
+  animation: word-pop 420ms ease both;
+  font-size: calc(clamp(1.1rem, min(3vw, 3.4vh), 2rem) * var(--word-scale));
+  font-weight: 900;
+  line-height: 0.95;
+  text-transform: lowercase;
+  transition: color 240ms ease, font-size 240ms ease, transform 240ms ease;
+}
+
+.cloud-word:hover {
+  transform: scale(1.06);
+}
+
+.admin-word-cloud {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-cloud-word {
+  display: inline-block;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: calc(0.9rem * var(--word-scale));
+  font-weight: 900;
+  padding: 6px 10px;
+}
+
+@keyframes word-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 760px) {
