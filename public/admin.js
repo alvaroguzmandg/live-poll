@@ -201,7 +201,7 @@ function renderHistory(items) {
   if (!items.length) {
     const empty = document.createElement("p");
     empty.className = "history-empty";
-    empty.textContent = "Todavía no hay encuestas archivadas.";
+    empty.textContent = "Todavía no hay actividades archivadas.";
     historyList.appendChild(empty);
     return;
   }
@@ -239,25 +239,24 @@ function renderHistory(items) {
         cloud.appendChild(word);
       });
       results.appendChild(cloud);
-      return;
+    } else {
+      item.results.forEach((option) => {
+        const voteLabel = option.votes === 1 ? "voto" : "votos";
+        const row = document.createElement("div");
+        row.className = "history-result-row";
+        row.innerHTML = `
+          <div class="result-meta">
+            <strong></strong>
+            <span>${option.votes} ${voteLabel} · ${option.percent}%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: ${option.percent}%"></div>
+          </div>
+        `;
+        row.querySelector("strong").textContent = option.text;
+        results.appendChild(row);
+      });
     }
-
-    item.results.forEach((option) => {
-      const voteLabel = option.votes === 1 ? "voto" : "votos";
-      const row = document.createElement("div");
-      row.className = "history-result-row";
-      row.innerHTML = `
-        <div class="result-meta">
-          <strong></strong>
-          <span>${option.votes} ${voteLabel} · ${option.percent}%</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width: ${option.percent}%"></div>
-        </div>
-      `;
-      row.querySelector("strong").textContent = option.text;
-      results.appendChild(row);
-    });
 
     card.querySelector("button").addEventListener("click", () => deleteHistoryItem(item.archiveId));
     historyList.appendChild(card);

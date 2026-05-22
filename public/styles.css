@@ -665,12 +665,15 @@ button:hover {
 
 .cloud-word {
   display: inline-block;
-  animation: word-pop 420ms ease both;
   font-size: calc(clamp(1.1rem, min(3vw, 3.4vh), 2rem) * var(--word-scale));
   font-weight: 900;
   line-height: 0.95;
   text-transform: lowercase;
-  transition: color 240ms ease, font-size 240ms ease, transform 240ms ease;
+  transition: color 360ms ease, font-size 360ms ease, transform 240ms ease;
+}
+
+.cloud-word.is-new {
+  animation: word-pop 420ms ease both;
 }
 
 .cloud-word:hover {

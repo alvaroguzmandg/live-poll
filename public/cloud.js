@@ -6,6 +6,7 @@ const thanksEl = document.querySelector("#thanks");
 const refreshButton = document.querySelector("#refresh-page");
 
 let activity = null;
+let isSubmitting = false;
 
 function participantId() {
   const key = "live-poll-participant-id";
@@ -54,6 +55,8 @@ function renderActivity() {
   setLayoutDensity(activity.question);
   formEl.hidden = hasSubmitted;
   thanksEl.hidden = !hasSubmitted;
+  inputEl.disabled = hasSubmitted || isSubmitting;
+  formEl.querySelector("button").disabled = hasSubmitted || isSubmitting;
   inputEl.value = "";
   setStatus(hasSubmitted ? `Mandaste: ${submittedWord}` : "Escribí una palabra o máximo 2.");
 }
@@ -66,6 +69,10 @@ async function loadActivity() {
 
 async function submitWord(event) {
   event.preventDefault();
+  if (isSubmitting || localStorage.getItem(submittedKey(activity.version)) === "true") {
+    renderActivity();
+    return;
+  }
 
   const word = normalizeWord(inputEl.value);
   if (!word || word.split(" ").filter(Boolean).length > 2) {
@@ -73,6 +80,9 @@ async function submitWord(event) {
     return;
   }
 
+  isSubmitting = true;
+  inputEl.disabled = true;
+  formEl.querySelector("button").disabled = true;
   setStatus("Enviando...");
   const response = await fetch("/api/word", {
     method: "POST",
@@ -86,6 +96,7 @@ async function submitWord(event) {
   const result = await response.json();
 
   if (!response.ok) {
+    isSubmitting = false;
     setStatus(result.error || "No se pudo enviar.");
     await loadActivity();
     return;
@@ -93,6 +104,7 @@ async function submitWord(event) {
 
   localStorage.setItem(submittedKey(activity.version), "true");
   localStorage.setItem(submittedWordKey(activity.version), result.word);
+  isSubmitting = false;
   renderActivity();
 }
 
