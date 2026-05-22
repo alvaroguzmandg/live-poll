@@ -20,6 +20,8 @@ function renderDisplayResults(data) {
   displayTotal.textContent = `${data.total} ${data.total === 1 ? "voto" : "votos"}`;
   displayResults.innerHTML = "";
   setLayoutDensity(data.question, data.results.length);
+  const longestAnswer = Math.max(...data.results.map((option) => option.text.length), 0);
+  document.body.dataset.answerSize = longestAnswer > 110 ? "xlong" : longestAnswer > 58 ? "long" : "normal";
 
   data.results.forEach((option) => {
     const voteLabel = option.votes === 1 ? "voto" : "votos";

@@ -30,8 +30,10 @@ function setStatus(message) {
 
 function setLayoutDensity(question, optionCount) {
   const length = question.length;
+  const longestOption = Math.max(...poll.options.map((option) => option.text.length), 0);
   document.body.dataset.questionSize = length > 120 ? "xlong" : length > 72 ? "long" : "normal";
   document.body.dataset.optionCount = String(optionCount);
+  document.body.dataset.answerSize = longestOption > 110 ? "xlong" : longestOption > 58 ? "long" : "normal";
 }
 
 function renderPoll() {

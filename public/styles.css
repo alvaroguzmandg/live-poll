@@ -159,8 +159,9 @@ h2 {
   border: 2px solid rgba(255, 255, 255, 0.18);
   background: #fff;
   color: var(--event-panel);
-  font-size: clamp(0.95rem, min(2.7vw, 3.1vh), 1.6rem);
-  font-weight: 900;
+  font-size: clamp(0.95rem, min(2.35vw, 2.75vh), 1.45rem);
+  font-weight: 650;
+  line-height: 1.18;
   min-height: 0;
   overflow-wrap: anywhere;
   padding: clamp(10px, 2.2vmin, 18px);
@@ -169,8 +170,22 @@ h2 {
 
 .voter-body[data-option-count="5"] .option-button,
 .voter-body[data-option-count="6"] .option-button {
-  font-size: clamp(0.85rem, min(2.2vw, 2.5vh), 1.25rem);
+  font-size: clamp(0.82rem, min(1.95vw, 2.25vh), 1.15rem);
   padding: clamp(8px, 1.6vmin, 14px);
+}
+
+.voter-body[data-answer-size="long"] .option-button {
+  font-size: clamp(0.78rem, min(1.8vw, 2.1vh), 1.08rem);
+  font-weight: 560;
+  line-height: 1.12;
+  padding: clamp(8px, 1.45vmin, 12px);
+}
+
+.voter-body[data-answer-size="xlong"] .option-button {
+  font-size: clamp(0.68rem, min(1.45vw, 1.75vh), 0.94rem);
+  font-weight: 520;
+  line-height: 1.08;
+  padding: clamp(6px, 1.1vmin, 10px);
 }
 
 .option-button:hover,
@@ -612,16 +627,28 @@ button:hover {
   gap: clamp(10px, 2vmin, 16px);
   align-items: end;
   color: #fff;
-  font-size: clamp(0.95rem, min(2.4vw, 2.8vh), 2rem);
+  font-size: clamp(0.95rem, min(2.05vw, 2.45vh), 1.55rem);
+  line-height: 1.15;
   text-align: left;
 }
 
 .results-body[data-option-count="5"] .display-result-meta,
 .results-body[data-option-count="6"] .display-result-meta {
-  font-size: clamp(0.82rem, min(1.9vw, 2.3vh), 1.35rem);
+  font-size: clamp(0.78rem, min(1.7vw, 2vh), 1.08rem);
+}
+
+.results-body[data-answer-size="long"] .display-result-meta {
+  font-size: clamp(0.72rem, min(1.45vw, 1.75vh), 0.98rem);
+  line-height: 1.1;
+}
+
+.results-body[data-answer-size="xlong"] .display-result-meta {
+  font-size: clamp(0.62rem, min(1.2vw, 1.45vh), 0.82rem);
+  line-height: 1.06;
 }
 
 .display-result-meta strong {
+  font-weight: 560;
   overflow-wrap: anywhere;
 }
 
