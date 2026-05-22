@@ -20,7 +20,8 @@ const restoreBrowserBackupButton = document.querySelector("#restore-browser-back
 const backupStatus = document.querySelector("#backup-status");
 
 let lastVersion = null;
-let currentActivityType = "poll";
+let editorActivityType = "poll";
+let activeActivityType = "poll";
 let adminKey = new URLSearchParams(window.location.search).get("key") || sessionStorage.getItem("live-poll-admin-key") || "";
 const browserBackupKey = "live-poll-admin-backup";
 
@@ -47,11 +48,11 @@ function adminFetch(url, options = {}) {
 }
 
 function currentVoteUrl() {
-  return `${window.location.origin}/${currentActivityType === "cloud" ? "nube" : "encuesta"}`;
+  return `${window.location.origin}/${editorActivityType === "cloud" ? "nube" : "encuesta"}`;
 }
 
 function currentResultsUrl() {
-  return `${window.location.origin}/${currentActivityType === "cloud" ? "nube-resultados" : "encuesta-resultado"}`;
+  return `${window.location.origin}/${editorActivityType === "cloud" ? "nube-resultados" : "encuesta-resultado"}`;
 }
 
 function updateShareTools() {
@@ -62,8 +63,8 @@ function updateShareTools() {
 }
 
 function syncActivityControls() {
-  currentActivityType = activityTypeInput.value;
-  pollOptionsEditor.hidden = currentActivityType === "cloud";
+  editorActivityType = activityTypeInput.value;
+  pollOptionsEditor.hidden = editorActivityType === "cloud";
   updateShareTools();
 }
 
@@ -94,29 +95,28 @@ function syncEditor(data) {
   if (lastVersion === data.version) return;
 
   lastVersion = data.version;
-  currentActivityType = data.type || "poll";
-  activityTypeInput.value = currentActivityType;
+  editorActivityType = data.type || "poll";
+  activeActivityType = editorActivityType;
+  activityTypeInput.value = editorActivityType;
   syncActivityControls();
   questionInput.value = data.question;
   optionInputs.innerHTML = "";
   (data.options || []).forEach((option) => addOptionInput(option.text));
-  if (currentActivityType === "poll" && optionInputs.children.length < 2) {
+  if (editorActivityType === "poll" && optionInputs.children.length < 2) {
     addOptionInput();
     addOptionInput();
   }
 }
 
 function renderResults(data) {
-  currentActivityType = data.type || "poll";
-  activityTypeInput.value = currentActivityType;
-  syncActivityControls();
+  activeActivityType = data.type || "poll";
   resultsQuestion.textContent = data.question;
-  totalVotes.textContent = currentActivityType === "cloud"
+  totalVotes.textContent = activeActivityType === "cloud"
     ? `${data.total} ${data.total === 1 ? "palabra" : "palabras"}`
     : `${data.total} ${data.total === 1 ? "voto" : "votos"}`;
   resultsList.innerHTML = "";
 
-  if (currentActivityType === "cloud") {
+  if (activeActivityType === "cloud") {
     renderCloudResults(data);
     return;
   }
