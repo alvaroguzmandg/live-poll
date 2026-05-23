@@ -73,6 +73,7 @@ function updateShareTools() {
 function syncActivityControls() {
   editorActivityType = activityTypeInput.value;
   pollOptionsEditor.hidden = editorActivityType === "cloud";
+  saveActivityButton.textContent = selectedActivityId ? "Actualizar actividad" : "Guardar como nueva";
   updateShareTools();
 }
 
@@ -445,10 +446,7 @@ async function saveActivityToLibrary() {
   }
 
   renderActivitiesLibrary(data);
-  if (!selectedActivityId && data.activities.length) {
-    selectedActivityId = data.activities[0].id;
-  }
-  setStatus("Actividad guardada en la biblioteca.");
+  setStatus(selectedActivityId ? "Actividad actualizada en la biblioteca." : "Actividad nueva guardada en la biblioteca.");
   refreshBrowserBackup();
 }
 

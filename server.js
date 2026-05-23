@@ -90,6 +90,11 @@ function saveActivities(nextActivities = activities) {
   fs.writeFileSync(ACTIVITIES_FILE, JSON.stringify(nextActivities, null, 2));
 }
 
+function refreshActivities() {
+  activities = loadActivities();
+  return activities;
+}
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let body = "";
@@ -279,6 +284,7 @@ function activityPayload(body) {
 }
 
 function publicActivities() {
+  refreshActivities();
   return {
     activeActivityId: activities.activeActivityId,
     activities: activities.activities.map((activity) => ({
@@ -298,6 +304,7 @@ function publicActivities() {
 }
 
 function activateSavedActivity(activityId) {
+  refreshActivities();
   const activity = activities.activities.find((item) => item.id === activityId);
   if (!activity) {
     return null;
@@ -386,6 +393,7 @@ async function handleApi(req, res, pathname) {
       createdAt: now,
       updatedAt: now
     };
+    refreshActivities();
     activities.activities = [activity, ...activities.activities];
     saveActivities();
     sendJson(res, 200, publicActivities());
@@ -579,6 +587,7 @@ async function handleApi(req, res, pathname) {
     }
 
     if (req.method === "PUT" && !action) {
+      refreshActivities();
       const activity = activities.activities.find((item) => item.id === activityId);
       if (!activity) {
         sendJson(res, 404, { error: "No se encontró esa actividad." });
@@ -599,6 +608,7 @@ async function handleApi(req, res, pathname) {
     }
 
     if (req.method === "DELETE" && !action) {
+      refreshActivities();
       const originalLength = activities.activities.length;
       activities.activities = activities.activities.filter((item) => item.id !== activityId);
       if (activities.activities.length === originalLength) {
