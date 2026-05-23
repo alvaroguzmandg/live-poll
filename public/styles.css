@@ -482,6 +482,27 @@ button:hover {
   margin-top: 22px;
 }
 
+.library-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 22px;
+}
+
+.library-sections h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.library-sections .activities-list {
+  margin-top: 12px;
+}
+
+.compact-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .activity-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -892,6 +913,10 @@ button:hover {
   }
 
   .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .library-sections {
     grid-template-columns: 1fr;
   }
 

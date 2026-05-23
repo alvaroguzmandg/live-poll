@@ -16,8 +16,10 @@ const copyLinkButton = document.querySelector("#copy-link");
 const qrCode = document.querySelector("#qr-code");
 const resultsLink = document.querySelector("#results-link");
 const historyList = document.querySelector("#history-list");
-const activitiesList = document.querySelector("#activities-list");
-const newActivityButton = document.querySelector("#new-activity");
+const pollActivitiesList = document.querySelector("#poll-activities-list");
+const cloudActivitiesList = document.querySelector("#cloud-activities-list");
+const newPollButton = document.querySelector("#new-poll");
+const newCloudButton = document.querySelector("#new-cloud");
 const refreshHistoryButton = document.querySelector("#refresh-history");
 const downloadBackupButton = document.querySelector("#download-backup");
 const restoreBrowserBackupButton = document.querySelector("#restore-browser-backup");
@@ -108,16 +110,18 @@ function editorPayload() {
   };
 }
 
-function clearEditor() {
+function clearEditor(type = "poll") {
   selectedActivityId = null;
   activityTitleInput.value = "";
-  activityTypeInput.value = "poll";
+  activityTypeInput.value = type;
   questionInput.value = "";
   optionInputs.innerHTML = "";
-  addOptionInput();
-  addOptionInput();
+  if (type === "poll") {
+    addOptionInput();
+    addOptionInput();
+  }
   syncActivityControls();
-  setStatus("Nueva actividad lista para cargar.");
+  setStatus(type === "cloud" ? "Nueva nube lista para cargar." : "Nueva encuesta lista para cargar.");
 }
 
 function loadActivityIntoEditor(activity) {
@@ -155,17 +159,35 @@ function syncEditor(data) {
 
 function renderActivitiesLibrary(data) {
   savedActivities = data.activities || [];
-  activitiesList.innerHTML = "";
+  pollActivitiesList.innerHTML = "";
+  cloudActivitiesList.innerHTML = "";
 
   if (!savedActivities.length) {
-    const empty = document.createElement("p");
-    empty.className = "history-empty";
-    empty.textContent = "Todavía no hay actividades guardadas.";
-    activitiesList.appendChild(empty);
+    renderLibraryEmpty(pollActivitiesList, "Todavía no hay encuestas guardadas.");
+    renderLibraryEmpty(cloudActivitiesList, "Todavía no hay nubes guardadas.");
     return;
   }
 
-  savedActivities.forEach((activity) => {
+  const polls = savedActivities.filter((activity) => activity.type !== "cloud");
+  const clouds = savedActivities.filter((activity) => activity.type === "cloud");
+  renderActivityGroup(pollActivitiesList, polls, "Todavía no hay encuestas guardadas.");
+  renderActivityGroup(cloudActivitiesList, clouds, "Todavía no hay nubes guardadas.");
+}
+
+function renderLibraryEmpty(container, message) {
+  const empty = document.createElement("p");
+  empty.className = "history-empty";
+  empty.textContent = message;
+  container.appendChild(empty);
+}
+
+function renderActivityGroup(container, group, emptyMessage) {
+  if (!group.length) {
+    renderLibraryEmpty(container, emptyMessage);
+    return;
+  }
+
+  group.forEach((activity) => {
     const card = document.createElement("article");
     card.className = `activity-card${activity.isActive ? " is-active" : ""}`;
     const typeLabel = activity.type === "cloud" ? "Nube" : "Encuesta";
@@ -191,7 +213,7 @@ function renderActivitiesLibrary(data) {
     card.querySelector('[data-action="activate"]').addEventListener("click", () => activateSavedActivity(activity.id));
     card.querySelector('[data-action="edit"]').addEventListener("click", () => loadActivityIntoEditor(activity));
     card.querySelector('[data-action="delete"]').addEventListener("click", () => deleteSavedActivity(activity.id));
-    activitiesList.appendChild(card);
+    container.appendChild(card);
   });
 }
 
@@ -552,7 +574,8 @@ formEl.addEventListener("submit", savePoll);
 saveActivityButton.addEventListener("click", saveActivityToLibrary);
 resetVotesButton.addEventListener("click", resetVotes);
 refreshHistoryButton.addEventListener("click", loadHistory);
-newActivityButton.addEventListener("click", clearEditor);
+newPollButton.addEventListener("click", () => clearEditor("poll"));
+newCloudButton.addEventListener("click", () => clearEditor("cloud"));
 downloadBackupButton.addEventListener("click", downloadBackup);
 restoreBrowserBackupButton.addEventListener("click", restoreBrowserBackup);
 copyLinkButton.addEventListener("click", async () => {

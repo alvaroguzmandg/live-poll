@@ -63,9 +63,21 @@
               <p class="eyebrow">Biblioteca</p>
               <h2>Actividades guardadas</h2>
             </div>
-            <button id="new-activity" type="button" class="secondary-button">Nueva actividad</button>
+            <div class="button-row compact-row">
+              <button id="new-poll" type="button" class="secondary-button">Nueva encuesta</button>
+              <button id="new-cloud" type="button" class="secondary-button">Nueva nube</button>
+            </div>
           </div>
-          <div id="activities-list" class="activities-list"></div>
+          <div class="library-sections">
+            <section>
+              <h3>Encuestas guardadas</h3>
+              <div id="poll-activities-list" class="activities-list"></div>
+            </section>
+            <section>
+              <h3>Nubes guardadas</h3>
+              <div id="cloud-activities-list" class="activities-list"></div>
+            </section>
+          </div>
         </div>
 
         <div class="panel results-panel">
