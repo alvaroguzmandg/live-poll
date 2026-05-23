@@ -1,9 +1,11 @@
 const formEl = document.querySelector("#poll-form");
+const activityTitleInput = document.querySelector("#activity-title");
 const activityTypeInput = document.querySelector("#activity-type");
 const questionInput = document.querySelector("#question-input");
 const pollOptionsEditor = document.querySelector("#poll-options-editor");
 const optionInputs = document.querySelector("#option-inputs");
 const addOptionButton = document.querySelector("#add-option");
+const saveActivityButton = document.querySelector("#save-activity");
 const resetVotesButton = document.querySelector("#reset-votes");
 const adminStatus = document.querySelector("#admin-status");
 const resultsQuestion = document.querySelector("#results-question");
@@ -14,6 +16,8 @@ const copyLinkButton = document.querySelector("#copy-link");
 const qrCode = document.querySelector("#qr-code");
 const resultsLink = document.querySelector("#results-link");
 const historyList = document.querySelector("#history-list");
+const activitiesList = document.querySelector("#activities-list");
+const newActivityButton = document.querySelector("#new-activity");
 const refreshHistoryButton = document.querySelector("#refresh-history");
 const downloadBackupButton = document.querySelector("#download-backup");
 const restoreBrowserBackupButton = document.querySelector("#restore-browser-backup");
@@ -22,6 +26,8 @@ const backupStatus = document.querySelector("#backup-status");
 let lastVersion = null;
 let editorActivityType = "poll";
 let activeActivityType = "poll";
+let selectedActivityId = null;
+let savedActivities = [];
 let adminKey = new URLSearchParams(window.location.search).get("key") || sessionStorage.getItem("live-poll-admin-key") || "";
 const browserBackupKey = "live-poll-admin-backup";
 
@@ -91,6 +97,44 @@ function addOptionInput(value = "") {
   optionInputs.appendChild(row);
 }
 
+function editorPayload() {
+  return {
+    type: activityTypeInput.value,
+    title: activityTitleInput.value.trim() || questionInput.value.trim(),
+    question: questionInput.value.trim(),
+    options: [...optionInputs.querySelectorAll("input")]
+      .map((input) => input.value.trim())
+      .filter(Boolean)
+  };
+}
+
+function clearEditor() {
+  selectedActivityId = null;
+  activityTitleInput.value = "";
+  activityTypeInput.value = "poll";
+  questionInput.value = "";
+  optionInputs.innerHTML = "";
+  addOptionInput();
+  addOptionInput();
+  syncActivityControls();
+  setStatus("Nueva actividad lista para cargar.");
+}
+
+function loadActivityIntoEditor(activity) {
+  selectedActivityId = activity.id;
+  activityTitleInput.value = activity.title || "";
+  activityTypeInput.value = activity.type || "poll";
+  questionInput.value = activity.question || "";
+  optionInputs.innerHTML = "";
+  (activity.options || []).forEach((option) => addOptionInput(option));
+  if (activity.type !== "cloud" && optionInputs.children.length < 2) {
+    addOptionInput();
+    addOptionInput();
+  }
+  syncActivityControls();
+  setStatus(`Editando: ${activity.title}`);
+}
+
 function syncEditor(data) {
   if (lastVersion === data.version) return;
 
@@ -99,6 +143,7 @@ function syncEditor(data) {
   activeActivityType = editorActivityType;
   activityTypeInput.value = editorActivityType;
   syncActivityControls();
+  activityTitleInput.value = data.title || data.question;
   questionInput.value = data.question;
   optionInputs.innerHTML = "";
   (data.options || []).forEach((option) => addOptionInput(option.text));
@@ -106,6 +151,48 @@ function syncEditor(data) {
     addOptionInput();
     addOptionInput();
   }
+}
+
+function renderActivitiesLibrary(data) {
+  savedActivities = data.activities || [];
+  activitiesList.innerHTML = "";
+
+  if (!savedActivities.length) {
+    const empty = document.createElement("p");
+    empty.className = "history-empty";
+    empty.textContent = "Todavía no hay actividades guardadas.";
+    activitiesList.appendChild(empty);
+    return;
+  }
+
+  savedActivities.forEach((activity) => {
+    const card = document.createElement("article");
+    card.className = `activity-card${activity.isActive ? " is-active" : ""}`;
+    const typeLabel = activity.type === "cloud" ? "Nube" : "Encuesta";
+    const totalRuns = activity.history ? activity.history.length : 0;
+    card.innerHTML = `
+      <div class="activity-card-main">
+        <span></span>
+        <h3></h3>
+        <p></p>
+        <small></small>
+      </div>
+      <div class="activity-actions">
+        <button type="button" data-action="activate">Activar</button>
+        <button type="button" data-action="edit" class="secondary-button">Editar</button>
+        <button type="button" data-action="delete" class="remove-option">Eliminar</button>
+      </div>
+    `;
+    card.querySelector("span").textContent = activity.isActive ? `${typeLabel} activa` : typeLabel;
+    card.querySelector("h3").textContent = activity.title || activity.question;
+    card.querySelector("p").textContent = activity.question;
+    card.querySelector("small").textContent = `${totalRuns} ${totalRuns === 1 ? "historial guardado" : "historiales guardados"}`;
+    card.querySelector('[data-action="activate"]').disabled = activity.isActive;
+    card.querySelector('[data-action="activate"]').addEventListener("click", () => activateSavedActivity(activity.id));
+    card.querySelector('[data-action="edit"]').addEventListener("click", () => loadActivityIntoEditor(activity));
+    card.querySelector('[data-action="delete"]').addEventListener("click", () => deleteSavedActivity(activity.id));
+    activitiesList.appendChild(card);
+  });
 }
 
 function renderResults(data) {
@@ -215,7 +302,7 @@ function renderHistory(items) {
           <h3></h3>
           <p></p>
         </div>
-        <button type="button" class="remove-option">Eliminar encuesta</button>
+        <button type="button" class="remove-option">Eliminar actividad</button>
       </div>
       <div class="history-results"></div>
     `;
@@ -282,23 +369,28 @@ async function loadHistory() {
   refreshBrowserBackup();
 }
 
+async function loadActivities() {
+  const response = await adminFetch("/api/admin/activities");
+  const data = await response.json();
+
+  if (!response.ok) {
+    setStatus(data.error || "No se pudo cargar la biblioteca.");
+    return;
+  }
+
+  renderActivitiesLibrary(data);
+}
+
 async function savePoll(event) {
   event.preventDefault();
   setStatus("Publicando...");
 
-  const type = activityTypeInput.value;
-  const options = [...optionInputs.querySelectorAll("input")]
-    .map((input) => input.value.trim())
-    .filter(Boolean);
+  const payload = editorPayload();
 
   const response = await adminFetch("/api/admin/activity", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type,
-      question: questionInput.value.trim(),
-      options
-    })
+    body: JSON.stringify(payload)
   });
 
   const data = await response.json();
@@ -308,9 +400,69 @@ async function savePoll(event) {
   }
 
   lastVersion = data.version;
+  selectedActivityId = null;
   renderResults(data);
   await loadHistory();
+  await loadActivities();
   setStatus("Actividad publicada. El QR se actualizó con la modalidad activa.");
+}
+
+async function saveActivityToLibrary() {
+  const payload = editorPayload();
+  setStatus(selectedActivityId ? "Actualizando actividad..." : "Guardando actividad...");
+  const response = await adminFetch(selectedActivityId ? `/api/admin/activities/${selectedActivityId}` : "/api/admin/activities", {
+    method: selectedActivityId ? "PUT" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    setStatus(data.error || "No se pudo guardar la actividad.");
+    return;
+  }
+
+  renderActivitiesLibrary(data);
+  if (!selectedActivityId && data.activities.length) {
+    selectedActivityId = data.activities[0].id;
+  }
+  setStatus("Actividad guardada en la biblioteca.");
+  refreshBrowserBackup();
+}
+
+async function activateSavedActivity(activityId) {
+  setStatus("Activando actividad...");
+  const response = await adminFetch(`/api/admin/activities/${activityId}/activate`, { method: "POST" });
+  const data = await response.json();
+
+  if (!response.ok) {
+    setStatus(data.error || "No se pudo activar la actividad.");
+    return;
+  }
+
+  lastVersion = data.results.version;
+  renderResults(data.results);
+  renderActivitiesLibrary(data.activities);
+  await loadHistory();
+  setStatus("Actividad activada. La anterior quedó archivada.");
+}
+
+async function deleteSavedActivity(activityId) {
+  setStatus("Eliminando actividad guardada...");
+  const response = await adminFetch(`/api/admin/activities/${activityId}`, { method: "DELETE" });
+  const data = await response.json();
+
+  if (!response.ok) {
+    setStatus(data.error || "No se pudo eliminar la actividad.");
+    return;
+  }
+
+  if (selectedActivityId === activityId) {
+    clearEditor();
+  }
+
+  renderActivitiesLibrary(data);
+  setStatus("Actividad eliminada de la biblioteca.");
 }
 
 async function resetVotes() {
@@ -328,7 +480,7 @@ async function resetVotes() {
 }
 
 async function deleteHistoryItem(archiveId) {
-  setStatus("Eliminando encuesta archivada...");
+  setStatus("Eliminando actividad archivada...");
   const response = await adminFetch(`/api/admin/history/${encodeURIComponent(archiveId)}`, {
     method: "DELETE"
   });
@@ -341,7 +493,7 @@ async function deleteHistoryItem(archiveId) {
 
   renderHistory(data);
   refreshBrowserBackup();
-  setStatus("Encuesta eliminada del registro.");
+  setStatus("Actividad eliminada del registro.");
 }
 
 async function downloadBackup() {
@@ -377,7 +529,8 @@ async function restoreBrowserBackup() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       poll: backup.poll,
-      history: backup.history
+      history: backup.history,
+      activities: backup.activities
     })
   });
   const data = await response.json();
@@ -389,14 +542,17 @@ async function restoreBrowserBackup() {
 
   renderResults(data.results);
   renderHistory(data.history);
+  await loadActivities();
   setBackupStatus("Backup restaurado. La encuesta activa y el historial volvieron al servidor.");
   await loadResults({ sync: true });
 }
 
 addOptionButton.addEventListener("click", () => addOptionInput());
 formEl.addEventListener("submit", savePoll);
+saveActivityButton.addEventListener("click", saveActivityToLibrary);
 resetVotesButton.addEventListener("click", resetVotes);
 refreshHistoryButton.addEventListener("click", loadHistory);
+newActivityButton.addEventListener("click", clearEditor);
 downloadBackupButton.addEventListener("click", downloadBackup);
 restoreBrowserBackupButton.addEventListener("click", restoreBrowserBackup);
 copyLinkButton.addEventListener("click", async () => {
@@ -408,4 +564,5 @@ activityTypeInput.addEventListener("change", syncActivityControls);
 updateShareTools();
 loadResults({ sync: true }).catch(() => setStatus("No se pudo cargar la encuesta."));
 loadHistory().catch(() => setStatus("No se pudo cargar el registro."));
+loadActivities().catch(() => setStatus("No se pudo cargar la biblioteca."));
 setInterval(() => loadResults().catch(() => {}), 1500);

@@ -14,6 +14,10 @@
           <h1>Actividad activa</h1>
           <form id="poll-form" class="editor-form">
             <label>
+              Título interno
+              <input id="activity-title" placeholder="Ej: Pregunta de apertura">
+            </label>
+            <label>
               Modalidad
               <select id="activity-type">
                 <option value="poll">Encuesta</option>
@@ -35,6 +39,7 @@
 
             <div class="button-row">
               <button type="submit">Publicar y limpiar respuestas</button>
+              <button id="save-activity" type="button" class="secondary-button">Guardar actividad</button>
               <button id="reset-votes" type="button" class="secondary-button">Limpiar respuestas</button>
             </div>
             <p id="admin-status" class="status" role="status"></p>
@@ -50,6 +55,17 @@
             <button id="copy-link" type="button" class="secondary-button">Copiar</button>
           </div>
           <a id="results-link" class="results-link" href="/encuesta-resultado" target="_blank" rel="noreferrer">Abrir pantalla de resultados</a>
+        </div>
+
+        <div class="panel library-panel">
+          <div class="results-title">
+            <div>
+              <p class="eyebrow">Biblioteca</p>
+              <h2>Actividades guardadas</h2>
+            </div>
+            <button id="new-activity" type="button" class="secondary-button">Nueva actividad</button>
+          </div>
+          <div id="activities-list" class="activities-list"></div>
         </div>
 
         <div class="panel results-panel">

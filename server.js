@@ -9,6 +9,7 @@ const PUBLIC_DIR = path.join(__dirname, "public");
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const DATA_FILE = path.join(DATA_DIR, "poll-state.json");
 const HISTORY_FILE = path.join(DATA_DIR, "poll-history.json");
+const ACTIVITIES_FILE = path.join(DATA_DIR, "activities.json");
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -29,6 +30,7 @@ const defaultPoll = {
 
 let poll = loadPoll();
 let history = loadHistory();
+let activities = loadActivities();
 
 function loadPoll() {
   try {
@@ -66,6 +68,26 @@ function loadHistory() {
 
 function saveHistory(nextHistory = history) {
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(nextHistory, null, 2));
+}
+
+function loadActivities() {
+  try {
+    const raw = fs.readFileSync(ACTIVITIES_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.activities)) {
+      return parsed;
+    }
+  } catch {
+    // First run: no saved activities yet.
+  }
+
+  const initial = { activeActivityId: null, activities: [] };
+  saveActivities(initial);
+  return initial;
+}
+
+function saveActivities(nextActivities = activities) {
+  fs.writeFileSync(ACTIVITIES_FILE, JSON.stringify(nextActivities, null, 2));
 }
 
 function readBody(req) {
@@ -194,6 +216,16 @@ function archiveCurrentPoll(reason = "replaced") {
 
   history = [snapshot, ...history];
   saveHistory();
+
+  if (poll.activityId) {
+    const savedActivity = activities.activities.find((activity) => activity.id === poll.activityId);
+    if (savedActivity) {
+      savedActivity.history = [snapshot, ...(savedActivity.history || [])];
+      savedActivity.lastArchivedAt = snapshot.archivedAt;
+      saveActivities();
+    }
+  }
+
   return snapshot;
 }
 
@@ -205,9 +237,12 @@ function isValidPollBackup(candidate) {
 
 function createNextActivity({ type, question, options }) {
   archiveCurrentPoll("replaced");
+  activities.activeActivityId = null;
+  saveActivities();
 
   poll = {
     id: poll.id,
+    activityId: null,
     type,
     version: poll.version + 1,
     question,
@@ -217,6 +252,79 @@ function createNextActivity({ type, question, options }) {
     updatedAt: new Date().toISOString()
   };
   savePoll();
+  return pollResults();
+}
+
+function activityPayload(body) {
+  const type = body.type === "cloud" ? "cloud" : "poll";
+  const title = String(body.title || body.question || "").trim();
+  const question = String(body.question || "").trim();
+  const optionTexts = Array.isArray(body.options)
+    ? body.options.map((option) => String(option || "").trim()).filter(Boolean)
+    : [];
+
+  if (title.length < 2) {
+    return { error: "Agregá un título para identificar la actividad." };
+  }
+
+  if (question.length < 3) {
+    return { error: "La consigna necesita al menos 3 caracteres." };
+  }
+
+  if (type === "poll" && optionTexts.length < 2) {
+    return { error: "Cargá al menos 2 opciones." };
+  }
+
+  return { type, title, question, options: optionTexts };
+}
+
+function publicActivities() {
+  return {
+    activeActivityId: activities.activeActivityId,
+    activities: activities.activities.map((activity) => ({
+      id: activity.id,
+      type: activity.type,
+      title: activity.title,
+      question: activity.question,
+      options: activity.options || [],
+      createdAt: activity.createdAt,
+      updatedAt: activity.updatedAt,
+      activatedAt: activity.activatedAt,
+      lastArchivedAt: activity.lastArchivedAt,
+      isActive: activities.activeActivityId === activity.id,
+      history: activity.history || []
+    }))
+  };
+}
+
+function activateSavedActivity(activityId) {
+  const activity = activities.activities.find((item) => item.id === activityId);
+  if (!activity) {
+    return null;
+  }
+
+  archiveCurrentPoll("replaced");
+  const now = new Date().toISOString();
+  activities.activeActivityId = activity.id;
+  activity.activatedAt = now;
+  activity.updatedAt = now;
+
+  poll = {
+    id: poll.id,
+    activityId: activity.id,
+    type: activity.type,
+    version: poll.version + 1,
+    question: activity.question,
+    options: activity.type === "poll"
+      ? activity.options.map((text) => ({ id: crypto.randomUUID(), text }))
+      : [],
+    votes: {},
+    words: {},
+    updatedAt: now
+  };
+
+  savePoll();
+  saveActivities();
   return pollResults();
 }
 
@@ -250,8 +358,37 @@ async function handleApi(req, res, pathname) {
     sendJson(res, 200, {
       exportedAt: new Date().toISOString(),
       poll,
-      history
+      history,
+      activities
     });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/admin/activities") {
+    sendJson(res, 200, publicActivities());
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/activities") {
+    const body = await readBody(req);
+    const payload = activityPayload(body);
+
+    if (payload.error) {
+      sendJson(res, 400, { error: payload.error });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const activity = {
+      id: crypto.randomUUID(),
+      ...payload,
+      history: [],
+      createdAt: now,
+      updatedAt: now
+    };
+    activities.activities = [activity, ...activities.activities];
+    saveActivities();
+    sendJson(res, 200, publicActivities());
     return;
   }
 
@@ -383,6 +520,10 @@ async function handleApi(req, res, pathname) {
       updatedAt: body.poll.updatedAt || new Date().toISOString()
     };
     history = body.history;
+    if (body.activities && Array.isArray(body.activities.activities)) {
+      activities = body.activities;
+      saveActivities();
+    }
     savePoll();
     saveHistory();
     sendJson(res, 200, {
@@ -419,6 +560,60 @@ async function handleApi(req, res, pathname) {
     savePoll();
     sendJson(res, 200, pollResults());
     return;
+  }
+
+  const activityMatch = pathname.match(/^\/api\/admin\/activities\/([^/]+)(?:\/(activate))?$/);
+  if (activityMatch) {
+    const activityId = decodeURIComponent(activityMatch[1]);
+    const action = activityMatch[2];
+
+    if (req.method === "POST" && action === "activate") {
+      const results = activateSavedActivity(activityId);
+      if (!results) {
+        sendJson(res, 404, { error: "No se encontró esa actividad." });
+        return;
+      }
+
+      sendJson(res, 200, { results, activities: publicActivities() });
+      return;
+    }
+
+    if (req.method === "PUT" && !action) {
+      const activity = activities.activities.find((item) => item.id === activityId);
+      if (!activity) {
+        sendJson(res, 404, { error: "No se encontró esa actividad." });
+        return;
+      }
+
+      const body = await readBody(req);
+      const payload = activityPayload(body);
+      if (payload.error) {
+        sendJson(res, 400, { error: payload.error });
+        return;
+      }
+
+      Object.assign(activity, payload, { updatedAt: new Date().toISOString() });
+      saveActivities();
+      sendJson(res, 200, publicActivities());
+      return;
+    }
+
+    if (req.method === "DELETE" && !action) {
+      const originalLength = activities.activities.length;
+      activities.activities = activities.activities.filter((item) => item.id !== activityId);
+      if (activities.activities.length === originalLength) {
+        sendJson(res, 404, { error: "No se encontró esa actividad." });
+        return;
+      }
+
+      if (activities.activeActivityId === activityId) {
+        activities.activeActivityId = null;
+      }
+
+      saveActivities();
+      sendJson(res, 200, publicActivities());
+      return;
+    }
   }
 
   sendJson(res, 404, { error: "Not found" });

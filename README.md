@@ -9,6 +9,7 @@ Mini app para actividades en vivo con dos modalidades: encuesta multiple choice 
 - `/encuesta-resultado`: pantalla publica de resultados de encuestas.
 - `/nube-resultados`: pantalla publica de nube de palabras.
 - `/admin?key=TU_CLAVE`: panel admin para elegir modalidad, cambiar consigna, ver QR, resetear respuestas, restaurar backup y administrar historial.
+- El admin tambien permite guardar actividades en biblioteca y activar una cuando haga falta. Activar una actividad desactiva y archiva la anterior.
 
 Las rutas `/` y `/results` quedan como aliases de compatibilidad para encuesta y resultados de encuesta.
 
@@ -28,7 +29,7 @@ Si `ADMIN_KEY` esta configurada, las acciones de admin requieren abrir `/admin?k
 
 ## Persistencia
 
-La actividad activa se guarda en `poll-state.json` y el historial en `poll-history.json`. Esos archivos no se suben a Git porque son datos vivos del evento.
+La actividad activa se guarda en `poll-state.json`, el historial global en `poll-history.json` y la biblioteca de actividades en `activities.json`. Esos archivos no se suben a Git porque son datos vivos del evento.
 
 Por defecto se guardan en la raiz del proyecto. En produccion podes configurar `DATA_DIR` para guardarlos en un disco persistente, por ejemplo:
 

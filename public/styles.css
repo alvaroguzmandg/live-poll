@@ -315,6 +315,10 @@ h2 {
   grid-column: 1 / -1;
 }
 
+.library-panel {
+  grid-column: 1 / -1;
+}
+
 .editor-form {
   display: grid;
   gap: 16px;
@@ -470,6 +474,58 @@ button:hover {
   display: grid;
   gap: 14px;
   margin-top: 22px;
+}
+
+.activities-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.activity-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.activity-card.is-active {
+  border-color: var(--event-accent);
+  background: #f6ffe8;
+}
+
+.activity-card-main {
+  display: grid;
+  gap: 6px;
+}
+
+.activity-card-main span {
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.activity-card-main h3,
+.activity-card-main p {
+  margin: 0;
+}
+
+.activity-card-main p,
+.activity-card-main small {
+  color: var(--muted);
+}
+
+.activity-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .history-empty {
@@ -842,6 +898,7 @@ button:hover {
   .button-row,
   .link-box,
   .results-title,
+  .activity-card,
   .history-card-header,
   .display-result-meta {
     align-items: stretch;
@@ -851,6 +908,14 @@ button:hover {
 
   .display-result-meta {
     text-align: center;
+  }
+
+  .activity-actions {
+    justify-content: stretch;
+  }
+
+  .activity-actions button {
+    width: 100%;
   }
 
   .display-result-meta span {
